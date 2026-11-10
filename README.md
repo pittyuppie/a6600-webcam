@@ -153,9 +153,24 @@ codesign --force --deep --sign - "A6600摄像头.app"
 
 ## 开源协议
 
-本项目代码以 **MIT** 协议开源，见 [LICENSE](LICENSE)。
-App 内捆绑分发的 gphoto2（GPL-2.0+）、libgphoto2（LGPL-2.1+）、FFmpeg（GPL-3.0+）
-等第三方组件，其协议义务履行说明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
-本项目通过独立进程管道调用上述工具（mere aggregation），自身源码不受其传染性约束。
+本项目**自身代码**以 **MIT** 协议开源，见 [LICENSE](LICENSE)。
+
+为做到「免安装即开即用」，App 内（`Contents/Resources/bin`、`Contents/Resources/lib`）
+**捆绑分发了** gphoto2、FFmpeg 及其全部动态库依赖（共 46 个 dylib、21 个相机驱动），
+涉及 GPL-2.0+ / GPL-3.0+ / LGPL-2.1 / LGPL-2.0 / Apache-2.0 / MIT / BSD 系 /
+IJG / libpng / FTL / libtiff / GD / Fontconfig / 0BSD 等多种许可证。
+
+合规情况：
+
+- **全部许可证全文随包附带**：见 [`LICENSES/`](LICENSES/)（App 内为
+  `Contents/Resources/LICENSES/`，49 个文件），并非只给外链
+- **完整组件清单**（版本、用途、上游源码地址）与 **GPL-2.0 §3(b) 书面承诺**
+  （三年内可索取对应源码）：见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)
+- **LGPL 可替换性**：各 LGPL 库以独立 dylib 形式分发，可按需替换后重签名，
+  操作说明见上述文档第五节
+- 应用通过独立子进程管道调用 `gphoto2`/`ffmpeg`（mere aggregation），
+  自身 MIT 代码不受其传染性约束
+
+在 App 菜单栏中点击 **「开源许可与第三方组件声明」**（快捷键 L）可直接查看这些文件。
 
 Sony、Alpha 是 Sony Group Corporation 的商标；本项目与 Sony 无任何隶属关系。

@@ -15,6 +15,11 @@ let resPath: String = {
 }()
 let SCRIPT = resPath + "/scripts/sony-webcam.sh"
 let WEBUI_SERVER = resPath + "/webui/server.py"
+
+// 单引号转义，便于把含空格/中文的路径安全拼进 shell 命令
+func shellQuote(_ s: String) -> String {
+    return "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+}
 let FLAG = "/tmp/sony-webcam-manual-stop"
 let LOCK = "/tmp/sony-webcam.lock"
 let LOG = "/tmp/sony-webcam.log"
@@ -76,6 +81,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let console = NSMenuItem(title: "打开 WebUI 参数控制台", action: #selector(openConsole(_:)), keyEquivalent: "c")
         console.target = self
         m.addItem(console)
+        let licenses = NSMenuItem(title: "开源许可与第三方组件声明", action: #selector(openLicenses(_:)), keyEquivalent: "l")
+        licenses.target = self
+        m.addItem(licenses)
 
         agentNoteItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         agentNoteItem.isHidden = true
@@ -264,6 +272,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openConsole(_ s: Any?) {
         ensureConsole()
         runShell("open http://127.0.0.1:8765")
+    }
+
+    @objc func openLicenses(_ s: Any?) {
+        // 打开随包分发的许可证目录：优先 README 索引，其次目录本身
+        let dir = resPath + "/LICENSES"
+        let idx = dir + "/README.md"
+        let notice = resPath + "/THIRD-PARTY-NOTICES.md"
+        if FileManager.default.fileExists(atPath: idx) {
+            runShell("open " + shellQuote(idx))
+        } else if FileManager.default.fileExists(atPath: dir) {
+            runShell("open " + shellQuote(dir))
+        } else {
+            runShell("open " + shellQuote(notice))
+        }
     }
 
     @objc func quitApp(_ s: Any?) {

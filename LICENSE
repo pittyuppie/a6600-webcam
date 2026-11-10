@@ -22,7 +22,18 @@ SOFTWARE.
 
 ---
 
-Third-party notice: this application is an orchestrator that invokes external
-programs (gphoto2, FFmpeg) as separate processes. It does not contain, link,
-or redistribute any third-party code. See THIRD-PARTY-NOTICES.md for the
-licenses of the external dependencies.
+Third-party notice: this MIT license applies only to this project's own source
+code (app/main.swift, webui/, *.sh, *.command and build scripts).
+
+This application invokes gphoto2 and FFmpeg as separate child processes over
+pipes (arm's-length / mere aggregation), and DOES redistribute their
+pre-compiled binaries plus their dynamic-library dependencies inside the
+application bundle (Contents/Resources/bin and Contents/Resources/lib), so that
+the app runs without Homebrew installed.
+
+Those bundled components remain under their own licenses (GPL-2.0-or-later,
+GPL-3.0-or-later, LGPL-2.1, LGPL-2.0, Apache-2.0, MIT, BSD variants, IJG,
+libpng, FTL, libtiff, GD, Fontconfig, 0BSD). The complete license texts are
+shipped inside the bundle under Contents/Resources/LICENSES/, and the full
+component inventory with versions, upstream sources and the written offer for
+corresponding source is in THIRD-PARTY-NOTICES.md.
