@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A6600 摄像头控制台</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b23;
+    --panel-2: #1c222c;
+    --line: #262e3a;
+    --text: #e6ebf2;
+    --muted: #8b98a9;
+    --accent: #4d8dff;
+    --ok: #35c17a;
+    --bad: #ff5c5c;
+    --warn: #f2b544;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "SF Pro SC", "PingFang SC", "Helvetica Neue", sans-serif;
+    font-size: 14px; line-height: 1.55;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo {
+    width: 38px; height: 38px; border-radius: 10px; flex: none;
+    background: linear-gradient(140deg, #4d8dff, #7b5cff);
+    display: grid; place-items: center; font-weight: 700; font-size: 15px;
+  }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .chips { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border-radius: 999px; font-size: 12.5px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 8px rgba(53,193,122,.55); }
+  .dot.bad { background: var(--bad); box-shadow: 0 0 8px rgba(255,92,92,.5); }
+  .dot.warn { background: var(--warn); }
+
+  .hint-box {
+    margin: 12px 0 4px; padding: 10px 12px; border-radius: 10px;
+    background: rgba(77,141,255,.08); border: 1px solid rgba(77,141,255,.28);
+    color: var(--muted); font-size: 11.8px; line-height: 1.6;
+  }
+
+  .grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px;
+  }
+  .card h2 {
+    font-size: 13px; margin: 0 0 14px; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .9px;
+  }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 620px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--panel-2); border-radius: 10px; padding: 11px 12px; }
+  .stat .k { color: var(--muted); font-size: 11.5px; }
+  .stat .v { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .stat .v small { font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+
+  #spark { width: 100%; height: 62px; display: block; margin-top: 14px; }
+
+  .row { display: flex; align-items: center; gap: 12px; margin: 13px 0; }
+  .row label { flex: 1 1 auto; min-width: 88px; color: var(--text); font-size: 13px; }
+  .row label span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 1px; }
+  .val { min-width: 62px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; font-size: 13px; }
+  input[type=range] {
+    -webkit-appearance: none; flex: 1.6 1 120px; min-width: 96px; background: transparent; margin: 0;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; background: #2b3340; border-radius: 3px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--accent); margin-top: -5.5px; border: 2px solid #0e1116;
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  select, input[type=number] {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 9px; font-size: 13px; font-family: inherit;
+  }
+  .toggle {
+    position: relative; width: 42px; height: 24px; border-radius: 999px; flex: none;
+    background: #2b3340; cursor: pointer; transition: background .18s;
+  }
+  .toggle::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #8b98a9; transition: all .18s;
+  }
+  .toggle.on { background: rgba(77,141,255,.35); }
+  .toggle.on::after { left: 21px; background: var(--accent); }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; }
+  button {
+    font-family: inherit; font-size: 13px; padding: 8px 15px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    cursor: pointer; transition: .15s; font-weight: 500;
+  }
+  button:hover { border-color: #3a4557; background: #222a36; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #3f7ff0; }
+  button.danger { color: #ff8a8a; border-color: #4a2a2a; }
+  button.danger:hover { background: #2a1c1c; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .presets { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .preset {
+    font-size: 12px; padding: 6px 11px; border-radius: 999px;
+    background: transparent; border: 1px dashed #384252; color: var(--muted);
+  }
+  .preset:hover { color: var(--text); border-color: var(--accent); }
+
+  #log {
+    background: #0b0e13; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 13px; height: 232px; overflow: auto; margin-top: 14px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11.5px;
+    line-height: 1.7; color: #9fb0c4; white-space: pre-wrap; word-break: break-all;
+  }
+  #log .hl { color: var(--warn); }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: #1e2733; border: 1px solid #33415a; color: var(--text);
+    padding: 10px 18px; border-radius: 10px; font-size: 13px; opacity: 0;
+    transition: .22s; pointer-events: none; box-shadow: 0 8px 28px rgba(0,0,0,.45);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hint { color: var(--muted); font-size: 11.5px; margin-top: 10px; }
+  code { background: #0b0e13; padding: 1px 6px; border-radius: 5px; font-size: 11.5px; color: #9fb0c4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">A66</div>
+    <div>
+      <h1>索尼 A6600 摄像头控制台</h1>
+      <div class="sub">gphoto2 → ffmpeg → UDP mpegts → OBS 媒体源 → OBS 虚拟摄像头</div>
+    </div>
+    <div class="chips">
+      <span class="chip"><span class="dot" id="dot-pipe"></span><span id="txt-pipe">推流状态</span></span>
+      <span class="chip"><span class="dot" id="dot-cam"></span><span id="txt-cam">相机</span></span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>实时状态</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">输出帧率</div><div class="v" id="s-fps">—<small>fps</small></div></div>
+          <div class="stat"><div class="k">实际码率</div><div class="v" id="s-br">—<small>Mbps</small></div></div>
+          <div class="stat"><div class="k">编码速度</div><div class="v" id="s-speed">—<small>x</small></div></div>
+          <div class="stat"><div class="k">丢帧</div><div class="v" id="s-drop">—</div></div>
+        </div>
+        <canvas id="spark"></canvas>
+        <div class="hint" id="s-meta">—</div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>运行日志</h2>
+        <div id="log">加载中…</div>
+        <div class="btns">
+          <button onclick="loadLog()">刷新日志</button>
+          <button onclick="document.getElementById('log').textContent=''">清屏</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>码流参数</h2>
+
+        <div class="row">
+          <label>视频码率<span>越高画质越稳，延迟也略增</span></label>
+          <input type="range" id="bitrate" min="2" max="12" step="1" />
+          <div class="val" id="v-bitrate">6 Mbps</div>
+        </div>
+
+        <div class="row">
+          <label>输出帧率<span>相机 PTP 取景上限约 25fps，30 是靠复制帧凑的</span></label>
+          <select id="fps">
+            <option value="25">25 fps（相机原生）</option>
+            <option value="30">30 fps（复制帧）</option>
+          </select>
+        </div>
+
+        <div class="hint-box">
+          USB 取景走索尼 PTP 预览通道，固定 1024×576 / 约 25fps，与相机的 100p 录制设置无关。
+          要更高帧率只能用 HDMI 输出（A6600 上限 1080/60p）+ 采集卡。
+        </div>
+
+        <div class="row">
+          <label>关键帧间隔<span>越小重连越快，码率越高</span></label>
+          <input type="range" id="gop_seconds" min="0.2" max="3" step="0.2" />
+          <div class="val" id="v-gop">1.0 s</div>
+        </div>
+
+        <div class="row">
+          <label>B 帧<span>开启会增加 1-2 帧延迟</span></label>
+          <div class="toggle" id="t-bframes"></div>
+        </div>
+
+        <div class="row">
+          <label>编码器实时模式<span>牺牲少量画质换更低延迟</span></label>
+          <div class="toggle" id="t-realtime"></div>
+        </div>
+
+        <div class="row">
+          <label>mpegts 复用延迟<span>0 为最低延迟；网络不稳可加 0.1-0.5</span></label>
+          <input type="range" id="muxdelay" min="0" max="0.5" step="0.05" />
+          <div class="val" id="v-mux">0.00 s</div>
+        </div>
+
+        <div class="row">
+          <label>UDP 端口</label>
+          <input type="number" id="port" min="1024" max="65535" style="width:96px" />
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>OBS 与看门狗</h2>
+
+        <div class="row">
+          <label>OBS 网络缓冲<span>0 = 最低延迟（约省 1-2 秒）</span></label>
+          <input type="range" id="obs_buffering_mb" min="0" max="8" step="1" />
+          <div class="val" id="v-obs">0 MB</div>
+        </div>
+
+        <div class="row">
+          <label>停滞自动重启<span>画面卡住超过阈值时重启取景</span></label>
+          <div class="toggle" id="t-watchdog"></div>
+        </div>
+
+        <div class="row">
+          <label>停滞判定阈值</label>
+          <input type="range" id="watchdog_timeout" min="5" max="60" step="5" />
+          <div class="val" id="v-wd">15 s</div>
+        </div>
+
+        <div class="btns">
+          <button onclick="applyObs()">写入 OBS 配置</button>
+          <button onclick="restartObs()">重启 OBS</button>
+        </div>
+        <div class="hint">OBS 的缓冲设置在重启 OBS 后生效；媒体源地址应保持 <code>udp://127.0.0.1:端口</code>、格式 <code>mpegts</code></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>操作</h2>
+        <div class="btns">
+          <button class="primary" id="btn-start" onclick="act('start')">启动推流</button>
+          <button class="danger" id="btn-stop" onclick="act('stop')">停止推流</button>
+          <button onclick="act('restart')">重启推流</button>
+        </div>
+        <div class="btns">
+          <button class="primary" onclick="saveConfig(true)">保存并立即应用</button>
+          <button onclick="saveConfig(false)">仅保存</button>
+        </div>
+        <div class="presets">
+          <button class="preset" onclick="preset('low')">极速低延迟</button>
+          <button class="preset" onclick="preset('balance')">平衡（推荐）</button>
+          <button class="preset" onclick="preset('quality')">高画质</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let cfg = null;
+let fpsHist = [];
+let dirty = false;
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  };
+  const r = await fetch(path, opt);
+  return r.json();
+}
+
+/* ---------- 控件绑定 ---------- */
+function bindRange(id, fmt, onChange) {
+  const el = $(id);
+  el.addEventListener("input", () => {
+    $("v-" + id.replace("gop_seconds", "gop").replace("muxdelay", "mux").replace("obs_buffering_mb", "obs").replace("watchdog_timeout", "wd")).textContent = fmt(+el.value);
+    dirty = true;
+    if (onChange) onChange(+el.value);
+  });
+}
+function bindToggle(id, key) {
+  const el = $(id);
+  el.addEventListener("click", () => {
+    el.classList.toggle("on");
+    dirty = true;
+  });
+}
+function setToggle(id, on) { $(id).classList.toggle("on", !!on); }
+function getToggle(id) { return $(id).classList.contains("on"); }
+
+bindRange("bitrate", (v) => v + " Mbps");
+bindRange("gop_seconds", (v) => v.toFixed(1) + " s");
+bindRange("muxdelay", (v) => v.toFixed(2) + " s");
+bindRange("obs_buffering_mb", (v) => v + " MB");
+bindRange("watchdog_timeout", (v) => v + " s");
+bindToggle("t-bframes");
+bindToggle("t-realtime");
+bindToggle("t-watchdog");
+$("port").addEventListener("input", () => dirty = true);
+$("fps").addEventListener("change", () => dirty = true);
+
+function fill(c) {
+  cfg = c;
+  $("bitrate").value = c.bitrate; $("v-bitrate").textContent = c.bitrate + " Mbps";
+  $("fps").value = String(c.fps);
+  $("gop_seconds").value = c.gop_seconds; $("v-gop").textContent = (+c.gop_seconds).toFixed(1) + " s";
+  $("muxdelay").value = c.muxdelay; $("v-mux").textContent = (+c.muxdelay).toFixed(2) + " s";
+  $("port").value = c.port;
+  $("obs_buffering_mb").value = c.obs_buffering_mb; $("v-obs").textContent = c.obs_buffering_mb + " MB";
+  $("watchdog_timeout").value = c.watchdog_timeout; $("v-wd").textContent = c.watchdog_timeout + " s";
+  setToggle("t-bframes", c.bframes);
+  setToggle("t-realtime", c.realtime);
+  setToggle("t-watchdog", c.watchdog);
+  dirty = false;
+}
+
+function readForm() {
+  return {
+    bitrate: +$("bitrate").value,
+    fps: +$("fps").value,
+    gop_seconds: +$("gop_seconds").value,
+    muxdelay: +$("muxdelay").value,
+    port: +$("port").value,
+    obs_buffering_mb: +$("obs_buffering_mb").value,
+    watchdog_timeout: +$("watchdog_timeout").value,
+    bframes: getToggle("t-bframes"),
+    realtime: getToggle("t-realtime"),
+    watchdog: getToggle("t-watchdog"),
+  };
+}
+
+/* ---------- 操作 ---------- */
+async function act(what) {
+  const r = await api("/api/" + what, {});
+  toast(r.msg || (r.ok ? "完成" : "失败"));
+  refresh();
+}
+async function saveConfig(applyNow) {
+  const body = readForm();
+  body.apply_now = !!applyNow;
+  const r = await api("/api/config", body);
+  toast(r.msg || "已保存");
+  if (r.config) fill(r.config);
+  refresh();
+}
+async function applyObs() {
+  await saveConfig(false);
+  const r = await api("/api/obs/apply", {});
+  toast(r.msg || "已写入");
+}
+async function restartObs() {
+  toast("正在重启 OBS…");
+  const r = await api("/api/obs/restart", {});
+  toast(r.msg || "已重启");
+}
+function preset(kind) {
+  const p = {
+    low: { bitrate: 4, fps: 30, gop_seconds: 0.5, muxdelay: 0, bframes: false, realtime: true, obs_buffering_mb: 0 },
+    balance: { bitrate: 6, fps: 30, gop_seconds: 1, muxdelay: 0, bframes: false, realtime: true, obs_buffering_mb: 0 },
+    quality: { bitrate: 10, fps: 30, gop_seconds: 2, muxdelay: 0.2, bframes: true, realtime: false, obs_buffering_mb: 2 },
+  }[kind];
+  $("bitrate").value = p.bitrate; $("v-bitrate").textContent = p.bitrate + " Mbps";
+  $("fps").value = String(p.fps);
+  $("gop_seconds").value = p.gop_seconds; $("v-gop").textContent = p.gop_seconds.toFixed(1) + " s";
+  $("muxdelay").value = p.muxdelay; $("v-mux").textContent = p.muxdelay.toFixed(2) + " s";
+  $("obs_buffering_mb").value = p.obs_buffering_mb; $("v-obs").textContent = p.obs_buffering_mb + " MB";
+  setToggle("t-bframes", p.bframes);
+  setToggle("t-realtime", p.realtime);
+  dirty = true;
+  toast("已套用预设，点「保存并立即应用」生效");
+}
+
+/* ---------- 状态轮询 ---------- */
+function drawSpark() {
+  const cv = $("spark"), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = 62;
+  if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const data = fpsHist.slice(-90);
+  if (data.length < 2) return;
+  const max = Math.max(32, ...data), min = 0;
+  const x = (i) => (i / (data.length - 1)) * w;
+  const y = (v) => h - 6 - ((v - min) / (max - min)) * (h - 14);
+  ctx.beginPath();
+  ctx.moveTo(x(0), h);
+  data.forEach((v, i) => ctx.lineTo(x(i), y(v)));
+  ctx.lineTo(x(data.length - 1), h);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(77,141,255,.35)");
+  g.addColorStop(1, "rgba(77,141,255,0)");
+  ctx.fillStyle = g; ctx.fill();
+  ctx.beginPath();
+  data.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+  ctx.strokeStyle = "#4d8dff"; ctx.lineWidth = 1.6; ctx.stroke();
+}
+
+async function refresh() {
+  try {
+    const s = await api("/api/status");
+    const running = s.running;
+    $("dot-pipe").className = "dot " + (running ? "ok" : "bad");
+    $("txt-pipe").textContent = running ? "推流中" : "已停止";
+    $("dot-cam").className = "dot " + (s.camera ? "ok" : "bad");
+    $("txt-cam").textContent = s.camera ? "相机已连接" : "未检测到相机";
+    $("btn-start").disabled = running;
+    $("btn-stop").disabled = !running;
+
+    const p = s.progress || {};
+    const fps = p.fps ? Math.round(+p.fps) : 0;
+    if (running) { fpsHist.push(fps); if (fpsHist.length > 300) fpsHist.shift(); }
+    else fpsHist = [];
+    $("s-fps").innerHTML = (running ? (fps || "—") : "—") + "<small>fps</small>";
+    $("s-br").innerHTML = (p.bitrate ? (parseFloat(p.bitrate) / 1000).toFixed(1) : "—") + "<small>Mbps</small>";
+    $("s-speed").innerHTML = (p.speed ? (+p.speed.replace("x", "")).toFixed(2) : "—") + "<small>x</small>";
+    $("s-drop").textContent = p.drop_frames !== undefined ? p.drop_frames : "—";
+
+    const age = p._age;
+    let meta = running
+      ? `运行 ${s.uptime}s ｜ 看门狗重启 ${s.restarts} 次`
+      : "推流未运行";
+    if (running && age !== null && age > 8) meta += ` ｜ ⚠️ 数据 ${age}s 未更新`;
+    $("s-meta").textContent = meta;
+
+    if (!dirty && s.config) fill(s.config);
+    drawSpark();
+  } catch (e) {
+    $("dot-pipe").className = "dot bad";
+    $("txt-pipe").textContent = "控制台断连";
+  }
+}
+
+async function loadLog() {
+  try {
+    const r = await fetch("/api/log?lines=120");
+    const txt = await r.text();
+    const el = $("log");
+    el.textContent = txt || "（暂无日志）";
+    el.scrollTop = el.scrollHeight;
+  } catch (e) { }
+}
+
+refresh();
+loadLog();
+setInterval(refresh, 1500);
+setInterval(loadLog, 4000);
+</script>
+</body>
+</html>
