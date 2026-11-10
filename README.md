@@ -126,6 +126,7 @@ swiftc -O -o "A6600摄像头.app/Contents/MacOS/SonyCam" main.swift
 cp Info.plist "A6600摄像头.app/Contents/"
 cp ../sony-webcam.sh "A6600摄像头.app/Contents/Resources/scripts/"
 cp -R ../webui "A6600摄像头.app/Contents/Resources/webui"
+cp icon/AppIcon.icns "A6600摄像头.app/Contents/Resources/"   # 应用图标（可用 make-icon.sh 重新生成）
 
 # 2. 打包 gphoto2 / ffmpeg 及全部依赖进 App（脚本自动以自身位置推导工作区）
 bash bundle-deps.sh         # 递归收集依赖 → Resources/{bin,lib} + camlibs/iolibs
